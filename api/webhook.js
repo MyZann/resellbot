@@ -1,13 +1,53 @@
-const TelegramBot = require('node-telegram-bot-api')
-
-const token = '8999455251:AAFkmFjMu3dd02IAESeg0JzyreCAFZ2eT5o'
-const ownerId = 7340265605
-
-const bot = new TelegramBot(token)
+const TOKEN = '8999455251:AAFkmFjMu3dd02IAESeg0JzyreCAFZ2eT5o'
+const OWNER_ID = 7340265605
+const TELEGRAM_API = 'https://api.telegram.org/bot' + TOKEN
 
 let startTime = Date.now()
-let authorizedUsers = [ownerId]
+let authorizedUsers = [OWNER_ID]
 let keyLogs = []
+
+async function sendTelegramRequest(method, payload) {
+  try {
+    const response = await fetch(TELEGRAM_API + '/' + method, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+    return await response.json()
+  } catch (error) {
+    console.error('Gagal mengirim pesan:', error)
+    return null
+  }
+}
+
+async function sendMessage(chatId, text, options = {}) {
+  const payload = {
+    chat_id: chatId,
+    text: text,
+    ...options
+  }
+  return await sendTelegramRequest('sendMessage', payload)
+}
+
+async function editMessageText(chatId, messageId, text, options = {}) {
+  const payload = {
+    chat_id: chatId,
+    message_id: messageId,
+    text: text,
+    ...options
+  }
+  return await sendTelegramRequest('editMessageText', payload)
+}
+
+async function answerCallbackQuery(callbackQueryId, options = {}) {
+  const payload = {
+    callback_query_id: callbackQueryId,
+    ...options
+  }
+  return await sendTelegramRequest('answerCallbackQuery', payload)
+}
 
 function generateKey() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -59,10 +99,14 @@ async function kirimDashboard(chatId) {
       ]
     }
   }
-  await bot.sendMessage(chatId, teksDasbor, options)
+  await sendMessage(chatId, teksDasbor, options)
 }
 
 module.exports = async (request, response) => {
+  if (request.method === 'GET') {
+    return response.status(200).send('Server bot aktif dan siap menerima pesan')
+  }
+
   try {
     const body = request.body
 
@@ -80,7 +124,7 @@ module.exports = async (request, response) => {
               inline_keyboard: [[{ text: '🔒 MINTA AKSES', callback_data: 'minta_akses' }]]
             }
           }
-          await bot.sendMessage(chatId, '⛔ Kamu belum memiliki akses. Silakan ajukan permintaan ke administrator.', options)
+          await sendMessage(chatId, '⛔ Kamu belum memiliki akses Silakan ajukan permintaan ke administrator', options)
         }
       }
     }
@@ -94,9 +138,9 @@ module.exports = async (request, response) => {
 
       if (data === 'minta_akses') {
         if (authorizedUsers.includes(chatId)) {
-          await bot.sendMessage(chatId, '✅ Kamu sudah memiliki akses. Ketik /start')
+          await sendMessage(chatId, '✅ Kamu sudah memiliki akses Ketik /start')
         } else {
-          await bot.sendMessage(chatId, '⏳ Permintaan kamu berhasil dikirim ke administrator.')
+          await sendMessage(chatId, '⏳ Permintaan kamu berhasil dikirim ke administrator')
           const adminOptions = {
             reply_markup: {
               inline_keyboard: [
@@ -104,74 +148,75 @@ module.exports = async (request, response) => {
               ]
             }
           }
-          await bot.sendMessage(ownerId, '🔔 Permintaan akses baru dari ' + username + ' ID ' + chatId, adminOptions)
+          await sendMessage(OWNER_ID, '🔔 Permintaan akses baru dari ' + username + ' ID ' + chatId, adminOptions)
         }
-        await bot.answerCallbackQuery(query.id)
+        await answerCallbackQuery(query.id)
       }
 
       if (data.startsWith('terima_')) {
-        if (chatId === ownerId) {
+        if (chatId === OWNER_ID) {
           const targetId = parseInt(data.split('_')[1])
           if (!authorizedUsers.includes(targetId)) {
             authorizedUsers.push(targetId)
           }
-          await bot.editMessageText('✅ Akses disetujui untuk ID ' + targetId, { chat_id: chatId, message_id: messageId })
-          await bot.sendMessage(targetId, '🎉 Akses disetujui! Ketik /start untuk membuka menu utama.')
+          await editMessageText(chatId, messageId, '✅ Akses disetujui untuk ID ' + targetId)
+          await sendMessage(targetId, '🎉 Akses disetujui Ketik /start untuk membuka menu utama')
         }
-        await bot.answerCallbackQuery(query.id)
+        await answerCallbackQuery(query.id)
       }
 
       if (data.startsWith('tolak_')) {
-        if (chatId === ownerId) {
+        if (chatId === OWNER_ID) {
           const targetId = parseInt(data.split('_')[1])
-          await bot.editMessageText('❌ Akses ditolak untuk ID ' + targetId, { chat_id: chatId, message_id: messageId })
-          await bot.sendMessage(targetId, 'Maaf, administrator menolak permintaan akses kamu. 😔')
+          await editMessageText(chatId, messageId, '❌ Akses ditolak untuk ID ' + targetId)
+          await sendMessage(targetId, 'Maaf administrator menolak permintaan akses kamu 😔')
         }
-        await bot.answerCallbackQuery(query.id)
+        await answerCallbackQuery(query.id)
       }
 
       if (data === 'buat_key') {
         if (!authorizedUsers.includes(chatId)) {
-          await bot.sendMessage(chatId, '⛔ Kamu tidak memiliki akses.')
+          await sendMessage(chatId, '⛔ Kamu tidak memiliki akses')
         } else {
           const rawKey = generateKey()
           const formatKey = rawKey.slice(0, 4) + '-' + rawKey.slice(4, 8) + '-' + rawKey.slice(8, 12) + '-' + rawKey.slice(12, 16)
           
           keyLogs.push('👤 ' + username + ' 🔑 ' + formatKey)
 
-          const teksHasil = '🛒 <b>KEY BARU DIBUAT!</b>\n\n' +
+          const teksHasil = '🛒 <b>KEY BARU DIBUAT</b>\n\n' +
             '👤 <b>User:</b> ' + username + '\n' +
             '🔑 <b>Key:</b> <span class="tg-spoiler">' + formatKey + '</span>\n' +
             '💰 <b>Tipe:</b> Premium\n' +
             '⏰ <b>Waktu:</b> ' + getWaktu() + '\n\n' +
-            '🚀 <i>Key berhasil dibuat.</i>'
+            '🚀 <i>Key berhasil dibuat</i>'
             
-          await bot.sendMessage(chatId, teksHasil, { parse_mode: 'HTML' })
+          await sendMessage(chatId, teksHasil, { parse_mode: 'HTML' })
         }
-        await bot.answerCallbackQuery(query.id)
+        await answerCallbackQuery(query.id)
       }
 
       if (data === 'owner_menu') {
-        if (chatId === ownerId) {
+        if (chatId === OWNER_ID) {
           let logText = '👑 <b>LOG PEMBUATAN KEY</b>\n\n'
           if (keyLogs.length === 0) {
-            logText += 'Belum ada data key dibuat.'
+            logText += 'Belum ada data key dibuat'
           } else {
             logText += keyLogs.join('\n')
           }
-          await bot.sendMessage(chatId, logText, { parse_mode: 'HTML' })
+          await sendMessage(chatId, logText, { parse_mode: 'HTML' })
         } else {
-          await bot.answerCallbackQuery(query.id, { text: '⛔ Menu ini khusus untuk Owner!', show_alert: true })
+          await answerCallbackQuery(query.id, { text: '⛔ Menu ini khusus untuk Owner', show_alert: true })
         }
       }
 
       if (data.startsWith('dummy_')) {
-        await bot.answerCallbackQuery(query.id, { text: '🚧 Fitur sedang dalam pengembangan', show_alert: true })
+        await answerCallbackQuery(query.id, { text: '🚧 Fitur sedang dalam pengembangan', show_alert: true })
       }
     }
 
     response.status(200).send('OK')
   } catch (error) {
+    console.error('Error handling webhook:', error)
     response.status(500).send('Error')
   }
 }
