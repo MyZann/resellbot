@@ -14,298 +14,78 @@
                         utama: '#F5A623',
                         gelap: '#030712',
                         garis: 'rgba(255, 255, 255, 0.08)'
-                    },
-                    fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                    },
-                    animation: {
-                        'marquee': 'marquee 30s linear infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        marquee: {
-                            '0%': { transform: 'translateX(0%)' },
-                            '100%': { transform: 'translateX(-100%)' },
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
-                        }
                     }
                 }
             }
         }
     </script>
     <style>
-        body { background-color: #030712; color: #e2e8f0; }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .glass-nav {
-            background: rgba(3, 7, 18, 0.7);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .text-gradient-utama {
-            background: linear-gradient(to right, #F5A623, #fcd34d);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .bg-grid {
-            background-size: 40px 40px;
-            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-        }
+        body { background-color: #030712; color: #e2e8f0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-nav { background: rgba(3, 7, 18, 0.7); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .text-gradient-utama { background: linear-gradient(to right, #F5A623, #fcd34d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 </head>
-<body class="font-sans antialiased overflow-x-hidden selection:bg-utama selection:text-white bg-grid">
+<body class="antialiased overflow-x-hidden">
 
-    <!-- Navigasi -->
     <nav class="fixed w-full z-50 top-0 glass-nav">
         <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
-            <a href="#" class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-utama rounded-lg flex items-center justify-center text-gelap font-bold">M</div>
-                <span class="font-extrabold text-xl text-white">MPK SMAN 3</span>
-            </a>
-            
-            <div class="hidden md:flex items-center space-x-1">
-                <a href="#beranda" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white">Beranda</a>
-                <a href="#inti" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white">Pengurus Inti</a>
-                <a href="#komisi" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white">Komisi</a>
-            </div>
-
-            <button id="mobile-menu-btn" class="md:hidden relative z-50 w-12 h-12 flex flex-col justify-center items-center gap-1.5 glass-panel rounded-xl">
-                <span id="line1" class="w-6 h-[2px] bg-white rounded-full transition-all duration-300"></span>
-                <span id="line2" class="w-6 h-[2px] bg-white rounded-full transition-all duration-300"></span>
-                <span id="line3" class="w-6 h-[2px] bg-white rounded-full transition-all duration-300"></span>
-            </button>
-        </div>
-        
-        <div id="mobile-menu" class="absolute w-full top-20 left-0 bg-gelap/95 backdrop-blur-3xl border-b border-garis transition-all duration-300 opacity-0 pointer-events-none -translate-y-4 md:hidden">
-            <div class="px-6 py-8 flex flex-col gap-6">
-                <a href="#beranda" class="text-lg font-medium text-slate-300">Beranda</a>
-                <a href="#inti" class="text-lg font-medium text-slate-300">Pengurus Inti</a>
-                <a href="#komisi" class="text-lg font-medium text-slate-300">Struktur Komisi</a>
-                <a href="#aspirasi" class="bg-utama text-gelap px-6 py-4 rounded-xl font-bold text-center">Kirim Aspirasi</a>
+            <a href="#" class="font-extrabold text-xl text-white">MPK SMAN 3</a>
+            <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-300">
+                <a href="#inti" class="hover:text-white">Pengurus</a>
+                <a href="#komisi" class="hover:text-white">Komisi</a>
+                <a href="#adart" class="hover:text-white">AD/ART</a>
             </div>
         </div>
     </nav>
 
-    <!-- Hero -->
-    <header id="beranda" class="pt-40 pb-20 px-6 lg:px-8 max-w-7xl mx-auto min-h-screen flex items-center">
-        <div class="flex flex-col lg:flex-row items-center gap-16 w-full">
-            <div class="lg:w-3/5 text-center lg:text-left">
-                <div class="inline-flex items-center gap-3 px-4 py-2 glass-panel rounded-full mb-8">
-                    <span class="w-2 h-2 bg-utama rounded-full animate-pulse shadow-[0_0_10px_#F5A623]"></span>
-                    <span class="text-xs font-semibold text-slate-300 uppercase tracking-widest">Kepengurusan 2026/2027</span>
+    <main class="pt-32 pb-20 px-6 max-w-7xl mx-auto space-y-24">
+        
+        <!-- Bagian Pengurus Inti -->
+        <section id="inti">
+            <h2 class="text-3xl font-bold text-white mb-8">Pengurus Inti</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="glass-panel p-6 rounded-2xl">
+                    <p class="text-utama text-sm font-bold">Ketua Umum</p>
+                    <p class="text-white font-bold">Athif Zhafir Arkandafi</p>
                 </div>
-                <h1 class="text-5xl lg:text-[5rem] font-extrabold leading-[1.1] mb-8 text-white">
-                    Pimpinan & <br><span class="text-gradient-utama">Aspirasi Nyata.</span>
-                </h1>
-                <p class="text-xl text-slate-400 mb-10 max-w-lg leading-relaxed">Selamat datang di portal resmi MPK SMAN 3 Cilacap di bawah kepemimpinan Athif Zhafir Arkandafi.</p>
+                <div class="glass-panel p-6 rounded-2xl">
+                    <p class="text-utama text-sm font-bold">Ketua 1</p>
+                    <p class="text-white font-bold">Raden Citorizqi Arvendhin T.</p>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl">
+                    <p class="text-utama text-sm font-bold">Sekretaris 1</p>
+                    <p class="text-white font-bold">Edriya Araminta ‘Abidah</p>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl">
+                    <p class="text-utama text-sm font-bold">Bendahara 1</p>
+                    <p class="text-white font-bold">Naila Khairunnisa Afifah</p>
+                </div>
             </div>
+        </section>
+
+        <!-- Bagian AD/ART -->
+        <section id="adart" class="glass-panel p-10 rounded-3xl border-utama/20">
+            <h2 class="text-3xl font-bold text-white mb-6">Dokumen AD/ART</h2>
+            <p class="text-slate-400 mb-8 max-w-2xl">Dokumen ini memuat aturan dasar dan rumah tangga yang menjadi pedoman utama organisasi MPK SMAN 3 Cilacap periode 2025/2026.</p>
             
-            <div class="lg:w-2/5 flex justify-center">
-                <div class="relative w-full max-w-sm aspect-[3/4] animate-float">
-                    <div class="absolute inset-0 bg-utama/20 blur-3xl rounded-full"></div>
-                    <div class="relative w-full h-full glass-panel rounded-[2rem] p-3 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=800" class="w-full h-full object-cover rounded-[1.5rem] grayscale hover:grayscale-0 transition-all duration-700">
-                        <div class="absolute bottom-6 left-6 right-6 glass-panel p-5 rounded-2xl border-white/10 backdrop-blur-md text-center">
-                            <p class="text-white font-bold text-lg leading-tight">Athif Zhafir Arkandafi</p>
-                            <p class="text-utama text-sm font-semibold uppercase tracking-widest mt-1">Ketua Umum</p>
-                        </div>
-                    </div>
+            <div class="flex items-center gap-4">
+                <div class="p-4 bg-utama/10 rounded-xl text-utama">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                 </div>
+                <div>
+                    <h3 class="text-white font-bold">AD_ART_MPK_2025_2026.pdf</h3>
+                    <p class="text-sm text-slate-500">Ditetapkan: 1 Oktober 2025</p>
+                </div>
+                <button class="ml-auto px-6 py-2 bg-utama text-gelap font-bold rounded-lg hover:bg-white transition-colors">
+                    Lihat Dokumen
+                </button>
             </div>
-        </div>
-    </header>
+        </section>
 
-    <!-- Pengurus Inti -->
-    <section id="inti" class="py-24 px-6 lg:px-8 max-w-7xl mx-auto relative z-10">
-        <div class="mb-16 border-l-4 border-utama pl-6">
-            <h2 class="text-sm font-bold tracking-[0.2em] text-utama uppercase mb-2">High Command</h2>
-            <h3 class="text-4xl font-extrabold text-white">Badan Pengurus Harian</h3>
-        </div>
+    </main>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Ketua 1 & 2 -->
-            <div class="glass-panel p-8 rounded-3xl group hover:border-utama/40 transition-all">
-                <h4 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-4">Wakil Pimpinan</h4>
-                <div class="space-y-6">
-                    <div>
-                        <p class="text-white font-bold text-lg">Raden Citorizqi Arvendhin T.</p>
-                        <p class="text-utama text-xs font-semibold">Ketua 1</p>
-                    </div>
-                    <div>
-                        <p class="text-white font-bold text-lg">Azam Khalid Zahenda</p>
-                        <p class="text-utama text-xs font-semibold">Ketua 2</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sekretaris -->
-            <div class="glass-panel p-8 rounded-3xl group hover:border-utama/40 transition-all">
-                <h4 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-4">Administrasi</h4>
-                <div class="space-y-6">
-                    <div>
-                        <p class="text-white font-bold text-lg">Edriya Araminta ‘Abidah</p>
-                        <p class="text-utama text-xs font-semibold">Sekretaris 1</p>
-                    </div>
-                    <div>
-                        <p class="text-white font-bold text-lg">Shafaa Aurora Fajari</p>
-                        <p class="text-utama text-xs font-semibold">Sekretaris 2</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bendahara -->
-            <div class="glass-panel p-8 rounded-3xl group hover:border-utama/40 transition-all">
-                <h4 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-4">Kebendaharaan</h4>
-                <div class="space-y-6">
-                    <div>
-                        <p class="text-white font-bold text-lg">Naila Khairunnisa Afifah</p>
-                        <p class="text-utama text-xs font-semibold">Bendahara 1</p>
-                    </div>
-                    <div>
-                        <p class="text-white font-bold text-lg">Zhessa Chaterina Azahra</p>
-                        <p class="text-utama text-xs font-semibold">Bendahara 2</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Komisi Umum -->
-            <div class="md:col-span-2 lg:col-span-3 glass-panel p-8 rounded-3xl flex flex-col md:flex-row justify-around items-center gap-8 border-utama/20">
-                <div class="text-center">
-                    <p class="text-white font-extrabold text-xl">Fajry Bagus Yulianto</p>
-                    <p class="text-utama text-xs font-bold uppercase mt-1">Ketua Komisi Umum</p>
-                </div>
-                <div class="h-[1px] w-12 md:h-12 md:w-[1px] bg-garis"></div>
-                <div class="text-center">
-                    <p class="text-white font-extrabold text-xl">Lathifah Yosi Fitriani</p>
-                    <p class="text-utama text-xs font-bold uppercase mt-1">Wakil Komisi Umum</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Komisi -->
-    <section id="komisi" class="py-24 bg-white/[0.01] border-y border-garis">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="text-center mb-20">
-                <h2 class="text-utama font-bold tracking-widest text-sm uppercase mb-4">Departemen Kerja</h2>
-                <h3 class="text-4xl md:text-5xl font-extrabold text-white">Struktur Komisi</h3>
-            </div>
-
-            <div class="space-y-12">
-                <!-- Komisi A -->
-                <div class="glass-panel rounded-[2.5rem] p-10 group overflow-hidden relative">
-                    <div class="absolute top-0 right-0 p-12 text-9xl font-black text-white/[0.02] pointer-events-none">A</div>
-                    <div class="relative z-10">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-                            <div>
-                                <h4 class="text-3xl font-extrabold text-white mb-2">Komisi A (Aspirasi)</h4>
-                                <div class="flex flex-wrap gap-4 mt-2">
-                                    <span class="bg-utama text-gelap px-3 py-1 rounded-lg text-xs font-bold">Ketua: Faqih Endhy Mahendra</span>
-                                    <span class="glass-panel text-white px-3 py-1 rounded-lg text-xs font-bold">Wakil: Keysa Ulfiana</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Alyaa Helena Zulfa</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Zaskya Ilisza Balqis</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Qois Faiz</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Arsya Kamila Fauzia</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Annisa Zhafira Wibowo</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Melda Putih Aura</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Komisi B -->
-                <div class="glass-panel rounded-[2.5rem] p-10 group overflow-hidden relative">
-                    <div class="absolute top-0 right-0 p-12 text-9xl font-black text-white/[0.02] pointer-events-none">B</div>
-                    <div class="relative z-10">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-                            <div>
-                                <h4 class="text-3xl font-extrabold text-white mb-2">Komisi B (Kedisiplinan)</h4>
-                                <div class="flex flex-wrap gap-4 mt-2">
-                                    <span class="bg-white text-gelap px-3 py-1 rounded-lg text-xs font-bold">Ketua: Dany Zimam Ayyasy</span>
-                                    <span class="glass-panel text-white px-3 py-1 rounded-lg text-xs font-bold">Wakil: Fabian Dzaki Pratama</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Esfandiar Rausyan</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Karina Nida Fauziah</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Farrel Athayya Syahputra</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Abdul Karim</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Keisya Ocha Avanti</div>
-                            <div class="p-4 glass-panel rounded-xl text-sm border-white/5">Raden Roro Meritza T. A.</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Komisi C -->
-                <div class="glass-panel rounded-[2.5rem] p-10 group overflow-hidden relative">
-                    <div class="absolute top-0 right-0 p-12 text-9xl font-black text-white/[0.02] pointer-events-none">C</div>
-                    <div class="relative z-10">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-                            <div>
-                                <h4 class="text-3xl font-extrabold text-white mb-2">Komisi C (Ekstrakurikuler)</h4>
-                                <div class="flex flex-wrap gap-4 mt-2">
-                                    <span class="bg-utama text-gelap px-3 py-1 rounded-lg text-xs font-bold">Ketua: Alvito Gading Perdana</span>
-                                    <span class="glass-panel text-white px-3 py-1 rounded-lg text-xs font-bold">Wakil: Hirzan Al Hafiz</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                            <div class="p-4 glass-panel rounded-xl border-white/5">Meita Dewanti</div>
-                            <div class="p-4 glass-panel rounded-xl border-white/5">Ahza Hanif Alfaruq</div>
-                            <div class="p-4 glass-panel rounded-xl border-white/5">Fiorenza Aurel Lovely H.</div>
-                            <div class="p-4 glass-panel rounded-xl border-white/5">Galih Ilham Suwanda</div>
-                            <div class="p-4 glass-panel rounded-xl border-white/5">Qonitah Ummu Fatimah</div>
-                            <div class="p-4 glass-panel rounded-xl border-white/5">Intan Putri Ramadhan</div>
-                            <div class="p-4 glass-panel rounded-xl border-white/5">Mia Elisia Ramadhani</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer Simple -->
-    <footer class="py-12 text-center border-t border-garis">
-        <p class="text-slate-500 text-sm italic">"Bersatu, Bergerak, Beraksi"</p>
-        <p class="text-slate-600 text-xs mt-2 uppercase tracking-widest">&copy; 2026 MPK SMA Negeri 3 Cilacap</p>
-    </footer>
-
-    <script>
-        const btn = document.getElementById('mobile-menu-btn');
-        const menu = document.getElementById('mobile-menu');
-        const l1 = document.getElementById('line1');
-        const l2 = document.getElementById('line2');
-        const l3 = document.getElementById('line3');
-        let isOpen = false;
-
-        btn.onclick = () => {
-            isOpen = !isOpen;
-            if(isOpen) {
-                menu.classList.replace('opacity-0', 'opacity-100');
-                menu.classList.remove('pointer-events-none', '-translate-y-4');
-                l1.classList.add('rotate-45', 'translate-y-[8px]');
-                l2.classList.add('opacity-0');
-                l3.classList.add('-rotate-45', '-translate-y-[8px]');
-            } else {
-                menu.classList.replace('opacity-100', 'opacity-0');
-                menu.classList.add('pointer-events-none', '-translate-y-4');
-                l1.classList.remove('rotate-45', 'translate-y-[8px]');
-                l2.classList.remove('opacity-0');
-                l3.classList.remove('-rotate-45', '-translate-y-[8px]');
-            }
-        };
-    </script>
 </body>
 </html>
