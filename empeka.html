@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPK SMAN 3 Cilacap | Profesional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #030712; color: #e2e8f0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-nav { background: rgba(3, 7, 18, 0.7); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .text-gradient-utama { background: linear-gradient(to right, #F5A623, #fcd34d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden selection:bg-utama selection:text-white">
+
+    <nav class="fixed w-full z-50 top-0 glass-nav">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
+            <span class="font-extrabold text-xl text-white">MPK SMAN 3</span>
+            <button id="mobile-menu-btn" class="md:hidden w-12 h-12 flex flex-col justify-center items-center gap-1.5 glass-panel rounded-xl">
+                <span id="line1" class="w-6 h-[2px] bg-white transition-all"></span>
+                <span id="line2" class="w-6 h-[2px] bg-white transition-all"></span>
+                <span id="line3" class="w-6 h-[2px] bg-white transition-all"></span>
+            </button>
+        </div>
+    </nav>
+
+    <section id="anggota" class="pt-32 pb-20 px-6 max-w-7xl mx-auto">
+        <h2 class="text-4xl font-extrabold text-white mb-12">Struktur Pengurus MPK</h2>
+
+        <!-- Inti -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            <div class="glass-panel p-6 rounded-2xl border-utama/40">
+                <p class="text-utama font-bold text-sm">Ketua Umum</p>
+                <p class="text-white text-lg font-bold">Athif Zhafir Arkandafi</p>
+            </div>
+            <div class="glass-panel p-6 rounded-2xl">
+                <p class="text-slate-400 text-sm">Ketua 1: Raden Citorizqi Arvendhin Trihutama</p>
+                <p class="text-slate-400 text-sm">Ketua 2: Azam Khalid Zahenda</p>
+            </div>
+            <div class="glass-panel p-6 rounded-2xl">
+                <p class="text-slate-400 text-sm">Sekretaris 1: Edriya Araminta ‘Abidah</p>
+                <p class="text-slate-400 text-sm">Sekretaris 2: Shafaa Aurora Fajari</p>
+            </div>
+        </div>
+
+        <!-- Komisi -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Komisi A -->
+            <div class="glass-panel p-8 rounded-3xl">
+                <h3 class="text-utama font-bold text-xl mb-4">Komisi A</h3>
+                <p class="text-slate-400 text-sm mb-4">Ketua: Faqih Endhy Mahendra</p>
+                <div class="space-y-2">
+                    <p class="text-sm text-white">Alyaa Helena Zulfa, Zaskya Ilisza Balqis, Qois Faiz, Arsya Kamila Fauzia, Annisa Zhafira Wibowo, Melda Putih Aura</p>
+                </div>
+            </div>
+            <!-- Komisi B -->
+            <div class="glass-panel p-8 rounded-3xl">
+                <h3 class="text-white font-bold text-xl mb-4">Komisi B</h3>
+                <p class="text-slate-400 text-sm mb-4">Ketua: Dany Zimam Ayyasy</p>
+                <div class="space-y-2">
+                    <p class="text-sm text-white">Esfandiar Rausyan, Karina Nida Fauziah, Farrel Athayya Syahputra, Abdul Karim, Keisya Ocha Avanti, Raden Roro Meritza Titania Anandita</p>
+                </div>
+            </div>
+            <!-- Komisi C -->
+            <div class="glass-panel p-8 rounded-3xl">
+                <h3 class="text-utama font-bold text-xl mb-4">Komisi C</h3>
+                <p class="text-slate-400 text-sm mb-4">Ketua: Alvito Gading Perdana</p>
+                <div class="space-y-2">
+                    <p class="text-sm text-white">Meita Dewanti, Ahza Hanif Alfaruq, Fiorenza Aurel Lovely Hanitya, Galih Ilham Suwanda, Qonitah Ummu Fatimah, Intan Putri Ramadhan, Mia Elisia Ramadhani</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const btn = document.getElementById('mobile-menu-btn');
+        let open = false;
+        btn.onclick = () => {
+            open = !open;
+            document.getElementById('line1').className = open ? 'w-6 h-[2px] bg-white rotate-45 translate-y-[8px]' : 'w-6 h-[2px] bg-white';
+            document.getElementById('line2').className = open ? 'w-6 h-[2px] bg-white opacity-0' : 'w-6 h-[2px] bg-white';
+            document.getElementById('line3').className = open ? 'w-6 h-[2px] bg-white -rotate-45 -translate-y-[8px]' : 'w-6 h-[2px] bg-white';
+        };
+    </script>
+</body>
+</html>
