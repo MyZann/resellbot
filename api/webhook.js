@@ -103,6 +103,7 @@ async function kirimDashboard(chatId) {
 }
 
 module.exports = async (request, response) => {
+  // Rute ini dipakai cron-job.org untuk menjaga server tetap hidup
   if (request.method === 'GET') {
     return response.status(200).send('Server bot aktif dan siap menerima pesan')
   }
