@@ -5,6 +5,29 @@ const TELEGRAM_API = 'https://api.telegram.org/bot' + TOKEN
 let startTime = Date.now()
 let authorizedUsers = [OWNER_ID]
 let keyLogs = []
+let userBalances = {}
+
+const products = {
+  p1: { name: 'Fluorite iOS', img: 'https://placehold.co/600x400/png?text=Fluorite+iOS', pkgs: [['1D', 35000], ['7D', 125000], ['30D', 300000]] },
+  p2: { name: 'Migul iOS', img: 'https://placehold.co/600x400/png?text=Migul+iOS', pkgs: [['1D', 25000], ['7D', 90000], ['31D', 200000]] },
+  p3: { name: 'Drip Client Proxy', img: 'https://placehold.co/600x400/png?text=Drip+Proxy', pkgs: [['1D', 7000], ['2D', 15000], ['3D', 35000]] },
+  p4: { name: 'Drip Client Non Root', img: 'https://placehold.co/600x400/png?text=Drip+Non+Root', pkgs: [['1D', 7000], ['3D', 18000], ['7D', 25000], ['15D', 57000], ['30D', 78000]] },
+  p5: { name: 'BR Root Mods', img: 'https://placehold.co/600x400/png?text=BR+Root', pkgs: [['1D', 9000], ['7D', 35000], ['15D', 65000], ['30D', 100000]] },
+  p6: { name: 'HG Mods', img: 'https://placehold.co/600x400/png?text=HG+Mods', pkgs: [['1D', 7500], ['7D', 25000], ['10D', 35000], ['30D', 100000]] },
+  p7: { name: 'Prime Hook', img: 'https://placehold.co/600x400/png?text=Prime+Hook', pkgs: [['1D', 5000], ['3D', 25000], ['7D', 32000]] },
+  p8: { name: 'Pato Team Orange', img: 'https://placehold.co/600x400/png?text=Pato+Orange', pkgs: [['3D', 25000], ['7D', 50000], ['15D', 100000], ['30D', 150000]] },
+  p9: { name: 'Pato Team Blue', img: 'https://placehold.co/600x400/png?text=Pato+Blue', pkgs: [['3D', 20000], ['7D', 50000], ['15D', 100000], ['30D', 150000]] },
+  p10: { name: 'GBox', img: 'https://placehold.co/600x400/png?text=GBox', pkgs: [['1Y', 60000]] }
+}
+
+function getBalance(chatId) {
+  if (chatId === OWNER_ID) return 9999999;
+  return userBalances[chatId] || 0;
+}
+
+function formatRp(angka) {
+  return 'Rp ' + angka.toLocaleString('id-ID');
+}
 
 async function sendTelegramRequest(method, payload) {
   try {
@@ -39,6 +62,23 @@ async function editMessageText(chatId, messageId, text, options = {}) {
     ...options
   }
   return await sendTelegramRequest('editMessageText', payload)
+}
+
+async function sendPhoto(chatId, photo, options = {}) {
+  const payload = {
+    chat_id: chatId,
+    photo: photo,
+    ...options
+  }
+  return await sendTelegramRequest('sendPhoto', payload)
+}
+
+async function deleteMessage(chatId, messageId) {
+  const payload = {
+    chat_id: chatId,
+    message_id: messageId
+  }
+  return await sendTelegramRequest('deleteMessage', payload)
 }
 
 async function answerCallbackQuery(callbackQueryId, options = {}) {
@@ -77,14 +117,20 @@ function getUptime() {
 async function kirimDashboard(chatId) {
   const teksDasbor = '🕒 <b>Waktu Sekarang:</b> ' + getWaktu() + '\n' +
     '⏱ <b>Runtime Bot:</b> ' + getUptime() + '\n' +
-    '💳 <b>Saldo Kamu:</b> Rp 0\n' +
+    '💳 <b>Saldo Kamu:</b> ' + formatRp(getBalance(chatId)) + '\n' +
     '👥 <b>Total Pengguna:</b> ' + authorizedUsers.length + '\n' +
     '-----------------------------\n' +
     '🔥 <b>PRODUK TERSEDIA KAMI</b> 🔥\n' +
-    '🔑 GENERATOR KEY PREMIUM\n' +
-    '🛒 RESS PANEL ADM PANEL TK PANEL\n' +
-    '📱 APK PREMIUM DAN BERBAYAR\n' +
-    '💻 SCRIPT BOT TELE DAN WA BERBAYAR\n\n' +
+    '1. Fluorite iOS\n' +
+    '2. Migul iOS\n' +
+    '3. Drip Client Proxy\n' +
+    '4. Drip Client Non Root\n' +
+    '5. BR Root Mods\n' +
+    '6. HG Mods\n' +
+    '7. Prime Hook\n' +
+    '8. Pato Team Orange\n' +
+    '9. Pato Team Blue\n' +
+    '10. GBox\n\n' +
     '🚀 <i>Official Key Bot</i>'
 
   const options = {
@@ -175,25 +221,92 @@ module.exports = async (request, response) => {
         await answerCallbackQuery(query.id)
       }
 
+      if (data === 'kembali_menu') {
+        await deleteMessage(chatId, messageId)
+        await kirimDashboard(chatId)
+        await answerCallbackQuery(query.id)
+      }
+
       if (data === 'buat_key') {
         if (!authorizedUsers.includes(chatId)) {
           await sendMessage(chatId, '⛔ Kamu tidak memiliki akses')
         } else {
+          await deleteMessage(chatId, messageId)
+          
+          const keyboardList = Object.keys(products).map(key => ([{ text: products[key].name, callback_data: 'sel_' + key }]))
+          keyboardList.push([{ text: '🔙 Kembali', callback_data: 'kembali_menu' }])
+          
+          await sendMessage(chatId, '📦 <b>PILIH PRODUK</b>\nSilakan pilih produk yang ingin Anda buat key-nya:', {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: keyboardList }
+          })
+        }
+        await answerCallbackQuery(query.id)
+      }
+
+      if (data.startsWith('sel_')) {
+        const prodId = data.replace('sel_', '')
+        const p = products[prodId]
+        if (p) {
+          await deleteMessage(chatId, messageId)
+          const packageButtons = p.pkgs.map((pkg, idx) => ([{ text: pkg[0] + ' - ' + formatRp(pkg[1]), callback_data: 'buy_' + prodId + '_' + idx }]))
+          packageButtons.push([{ text: '🔙 Kembali', callback_data: 'buat_key' }])
+          
+          await sendPhoto(chatId, p.img, {
+            caption: 'Produk: <b>' + p.name + '</b>\n\nSilakan pilih durasi paket di bawah ini:',
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: packageButtons }
+          })
+        }
+        await answerCallbackQuery(query.id)
+      }
+
+      if (data.startsWith('buy_')) {
+        const parts = data.split('_')
+        const prodId = parts[1]
+        const pkgIdx = parts[2]
+        const p = products[prodId]
+        const pkg = p.pkgs[pkgIdx]
+        
+        const price = pkg[1]
+        const duration = pkg[0]
+        const bal = getBalance(chatId)
+
+        if (bal < price) {
+          await answerCallbackQuery(query.id, { text: '⛔ Saldo tidak mencukupi!\nHarga: ' + formatRp(price) + '\nSaldo Anda: ' + formatRp(bal), show_alert: true })
+        } else {
+          if (chatId !== OWNER_ID) {
+            userBalances[chatId] = bal - price
+          }
+
           const rawKey = generateKey()
           const formatKey = rawKey.slice(0, 4) + '-' + rawKey.slice(4, 8) + '-' + rawKey.slice(8, 12) + '-' + rawKey.slice(12, 16)
           
-          keyLogs.push('👤 ' + username + ' 🔑 ' + formatKey)
+          keyLogs.push('👤 ' + username + ' 🔑 ' + formatKey + ' (' + p.name + ' ' + duration + ')')
 
           const teksHasil = '🛒 <b>KEY BARU DIBUAT</b>\n\n' +
             '👤 <b>User:</b> ' + username + '\n' +
+            '📦 <b>Produk:</b> ' + p.name + '\n' +
+            '⏳ <b>Durasi:</b> ' + duration + '\n' +
             '🔑 <b>Key:</b> <span class="tg-spoiler">' + formatKey + '</span>\n' +
-            '💰 <b>Tipe:</b> Premium\n' +
+            '💰 <b>Harga:</b> ' + formatRp(price) + '\n' +
             '⏰ <b>Waktu:</b> ' + getWaktu() + '\n\n' +
             '🚀 <i>Key berhasil dibuat</i>'
             
+          await deleteMessage(chatId, messageId)
           await sendMessage(chatId, teksHasil, { parse_mode: 'HTML' })
+          await kirimDashboard(chatId)
+          await answerCallbackQuery(query.id)
         }
-        await answerCallbackQuery(query.id)
+      }
+
+      if (data === 'dummy_depo') {
+        if (chatId !== OWNER_ID) {
+          userBalances[chatId] = (userBalances[chatId] || 0) + 100000
+        }
+        await answerCallbackQuery(query.id, { text: '✅ Saldo Rp 100.000 ditambahkan untuk pengujian', show_alert: true })
+        await deleteMessage(chatId, messageId)
+        await kirimDashboard(chatId)
       }
 
       if (data === 'owner_menu') {
@@ -210,7 +323,7 @@ module.exports = async (request, response) => {
         }
       }
 
-      if (data.startsWith('dummy_')) {
+      if (data.startsWith('dummy_') && data !== 'dummy_depo') {
         await answerCallbackQuery(query.id, { text: '🚧 Fitur sedang dalam pengembangan', show_alert: true })
       }
     }
