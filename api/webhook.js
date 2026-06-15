@@ -4,10 +4,13 @@ const TELEGRAM_API = 'https://api.telegram.org/bot' + TOKEN
 
 let startTime = Date.now()
 let authorizedUsers = [OWNER_ID]
+let blacklistedUsers = []
 let keyLogs = []
+let activeKeys = {}
 let userBalances = {}
+let adminState = ''
 
-const products = {
+let products = {
   p1: { name: 'Fluorite iOS', img: 'https://placehold.co/600x400/png?text=Fluorite+iOS', pkgs: [['1D', 35000], ['7D', 125000], ['30D', 300000]] },
   p2: { name: 'Migul iOS', img: 'https://placehold.co/600x400/png?text=Migul+iOS', pkgs: [['1D', 25000], ['7D', 90000], ['31D', 200000]] },
   p3: { name: 'Drip Client Proxy', img: 'https://placehold.co/600x400/png?text=Drip+Proxy', pkgs: [['1D', 7000], ['2D', 15000], ['3D', 35000]] },
@@ -115,22 +118,19 @@ function getUptime() {
 }
 
 async function kirimDashboard(chatId) {
+  let prodText = ''
+  const keys = Object.keys(products)
+  for (let i = 0; i < keys.length; i++) {
+    prodText += (i + 1) + '. ' + products[keys[i]].name + '\n'
+  }
+
   const teksDasbor = '🕒 <b>Waktu Sekarang:</b> ' + getWaktu() + '\n' +
     '⏱ <b>Runtime Bot:</b> ' + getUptime() + '\n' +
     '💳 <b>Saldo Kamu:</b> ' + formatRp(getBalance(chatId)) + '\n' +
     '👥 <b>Total Pengguna:</b> ' + authorizedUsers.length + '\n' +
     '-----------------------------\n' +
     '🔥 <b>PRODUK TERSEDIA KAMI</b> 🔥\n' +
-    '1. Fluorite iOS\n' +
-    '2. Migul iOS\n' +
-    '3. Drip Client Proxy\n' +
-    '4. Drip Client Non Root\n' +
-    '5. BR Root Mods\n' +
-    '6. HG Mods\n' +
-    '7. Prime Hook\n' +
-    '8. Pato Team Orange\n' +
-    '9. Pato Team Blue\n' +
-    '10. GBox\n\n' +
+    prodText + '\n' +
     '🚀 <i>Official Key Bot</i>'
 
   const options = {
@@ -148,6 +148,56 @@ async function kirimDashboard(chatId) {
   await sendMessage(chatId, teksDasbor, options)
 }
 
+async function handleAdminInput(chatId, text) {
+  try {
+    if (adminState === 'ADD_USER') {
+      const id = parseInt(text)
+      if (!authorizedUsers.includes(id)) authorizedUsers.push(id)
+      await sendMessage(chatId, '✅ User ' + id + ' berhasil ditambahkan')
+    } else if (adminState === 'REMOVE_USER') {
+      const id = parseInt(text)
+      authorizedUsers = authorizedUsers.filter(u => u !== id)
+      await sendMessage(chatId, '✅ User ' + id + ' berhasil dihapus')
+    } else if (adminState === 'BAN_USER') {
+      const id = parseInt(text)
+      if (!blacklistedUsers.includes(id)) blacklistedUsers.push(id)
+      authorizedUsers = authorizedUsers.filter(u => u !== id)
+      await sendMessage(chatId, '✅ User ' + id + ' dibanned')
+    } else if (adminState === 'ADD_BAL') {
+      const parts = text.split(' ')
+      const id = parseInt(parts[0])
+      const amount = parseInt(parts[1])
+      userBalances[id] = (userBalances[id] || 0) + amount
+      await sendMessage(chatId, '✅ Saldo user ' + id + ' ditambah ' + formatRp(amount))
+    } else if (adminState === 'REMOVE_BAL') {
+      const parts = text.split(' ')
+      const id = parseInt(parts[0])
+      const amount = parseInt(parts[1])
+      userBalances[id] = Math.max(0, (userBalances[id] || 0) - amount)
+      await sendMessage(chatId, '✅ Saldo user ' + id + ' dikurangi ' + formatRp(amount))
+    } else if (adminState === 'ADD_PROD') {
+      const parts = text.split('|')
+      const pId = parts[0]
+      const pName = parts[1]
+      const pPkgs = parts[2].split(';').map(p => {
+        const sp = p.split(',')
+        return [sp[0], parseInt(sp[1])]
+      })
+      products[pId] = { name: pName, img: 'https://placehold.co/600x400/png?text=' + pName.replace(/ /g, '+'), pkgs: pPkgs }
+      await sendMessage(chatId, '✅ Produk ' + pName + ' berhasil ditambahkan')
+    } else if (adminState === 'DEL_PROD') {
+      delete products[text]
+      await sendMessage(chatId, '✅ Produk ' + text + ' dihapus')
+    } else if (adminState === 'REVOKE_KEY' || adminState === 'RESET_KEY') {
+      delete activeKeys[text]
+      await sendMessage(chatId, '✅ Tindakan berhasil untuk key ' + text)
+    }
+  } catch (e) {
+    await sendMessage(chatId, '❌ Format salah Silakan ulangi')
+  }
+  adminState = ''
+}
+
 module.exports = async (request, response) => {
   // Rute ini dipakai cron-job.org untuk menjaga server tetap hidup
   if (request.method === 'GET') {
@@ -160,9 +210,18 @@ module.exports = async (request, response) => {
     if (body && body.message) {
       const msg = body.message
       const chatId = msg.chat.id
-      const text = msg.text
+      const text = msg.text || ''
+
+      if (chatId === OWNER_ID && adminState !== '' && !text.startsWith('/')) {
+        await handleAdminInput(chatId, text)
+        return response.status(200).send('OK')
+      }
 
       if (text === '/start') {
+        if (blacklistedUsers.includes(chatId)) {
+          await sendMessage(chatId, '⛔ Akun Anda telah dibanned oleh Admin')
+          return response.status(200).send('OK')
+        }
         if (authorizedUsers.includes(chatId)) {
           await kirimDashboard(chatId)
         } else {
@@ -283,6 +342,7 @@ module.exports = async (request, response) => {
           const formatKey = rawKey.slice(0, 4) + '-' + rawKey.slice(4, 8) + '-' + rawKey.slice(8, 12) + '-' + rawKey.slice(12, 16)
           
           keyLogs.push('👤 ' + username + ' 🔑 ' + formatKey + ' (' + p.name + ' ' + duration + ')')
+          activeKeys[formatKey] = { user: username, prod: p.name }
 
           const teksHasil = '🛒 <b>KEY BARU DIBUAT</b>\n\n' +
             '👤 <b>User:</b> ' + username + '\n' +
@@ -311,15 +371,103 @@ module.exports = async (request, response) => {
 
       if (data === 'owner_menu') {
         if (chatId === OWNER_ID) {
-          let logText = '👑 <b>LOG PEMBUATAN KEY</b>\n\n'
-          if (keyLogs.length === 0) {
-            logText += 'Belum ada data key dibuat'
-          } else {
-            logText += keyLogs.join('\n')
+          const opts = {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '👥 Kelola User', callback_data: 'own_users' }, { text: '💰 Kelola Saldo', callback_data: 'own_bal' }],
+                [{ text: '📦 Kelola Produk', callback_data: 'own_prod' }, { text: '🔑 Kelola Key', callback_data: 'own_keys' }],
+                [{ text: '📋 Lihat Log', callback_data: 'own_logs' }, { text: '🔙 Kembali Dasbor', callback_data: 'kembali_menu' }]
+              ]
+            }
           }
-          await sendMessage(chatId, logText, { parse_mode: 'HTML' })
+          await editMessageText(chatId, messageId, '👑 <b>PANEL OWNER</b>\nSilakan pilih menu manajemen:', opts)
         } else {
           await answerCallbackQuery(query.id, { text: '⛔ Menu ini khusus untuk Owner', show_alert: true })
+        }
+      }
+
+      if (data === 'own_users') {
+        if (chatId === OWNER_ID) {
+          await editMessageText(chatId, messageId, '👥 <b>Manajemen User</b>', {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '➕ Add User', callback_data: 'act_ADD_USER' }, { text: '➖ Remove User', callback_data: 'act_REMOVE_USER' }],
+                [{ text: '🚫 Ban User', callback_data: 'act_BAN_USER' }, { text: '🔙 Kembali', callback_data: 'owner_menu' }]
+              ]
+            }
+          })
+        }
+      }
+
+      if (data === 'own_bal') {
+        if (chatId === OWNER_ID) {
+          await editMessageText(chatId, messageId, '💰 <b>Manajemen Saldo</b>', {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '➕ Add Balance', callback_data: 'act_ADD_BAL' }, { text: '➖ Reduce Balance', callback_data: 'act_REMOVE_BAL' }],
+                [{ text: '🔙 Kembali', callback_data: 'owner_menu' }]
+              ]
+            }
+          })
+        }
+      }
+
+      if (data === 'own_prod') {
+        if (chatId === OWNER_ID) {
+          let pList = 'Daftar Produk Saat Ini:\n' + Object.keys(products).map(k => k + ' ' + products[k].name).join('\n')
+          await editMessageText(chatId, messageId, '📦 <b>Manajemen Produk</b>\n' + pList, {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '➕ Add Produk', callback_data: 'act_ADD_PROD' }, { text: '➖ Hapus Produk', callback_data: 'act_DEL_PROD' }],
+                [{ text: '🔙 Kembali', callback_data: 'owner_menu' }]
+              ]
+            }
+          })
+        }
+      }
+
+      if (data === 'own_keys') {
+        if (chatId === OWNER_ID) {
+          await editMessageText(chatId, messageId, '🔑 <b>Manajemen Key</b>', {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '❌ Revoke Key', callback_data: 'act_REVOKE_KEY' }, { text: '🔄 Reset Key', callback_data: 'act_RESET_KEY' }],
+                [{ text: '🔙 Kembali', callback_data: 'owner_menu' }]
+              ]
+            }
+          })
+        }
+      }
+
+      if (data === 'own_logs') {
+        if (chatId === OWNER_ID) {
+          let logText = '👑 <b>LOG PEMBUATAN KEY</b>\n\n'
+          if (keyLogs.length === 0) logText += 'Belum ada data key dibuat'
+          else logText += keyLogs.join('\n')
+          await editMessageText(chatId, messageId, logText, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: '🔙 Kembali', callback_data: 'owner_menu' }]] }
+          })
+        }
+      }
+
+      if (data.startsWith('act_')) {
+        if (chatId === OWNER_ID) {
+          adminState = data.replace('act_', '')
+          let msgText = 'Kirimkan data untuk ' + adminState + '\n\n'
+          if (adminState === 'ADD_USER' || adminState === 'REMOVE_USER' || adminState === 'BAN_USER') msgText += 'Format IDUser\nContoh 12345678'
+          else if (adminState === 'ADD_BAL' || adminState === 'REMOVE_BAL') msgText += 'Format IDUser Jumlah\nContoh 12345678 50000'
+          else if (adminState === 'ADD_PROD') msgText += 'Format ID|Nama|Durasi,Harga;Durasi,Harga\nContoh p11|VIP Baru|1D,10000;7D,50000'
+          else if (adminState === 'DEL_PROD') msgText += 'Format IDProduk\nContoh p1'
+          else if (adminState === 'REVOKE_KEY' || adminState === 'RESET_KEY') msgText += 'Format Key\nContoh ABCD-EFGH-IJKL-MNOP'
+
+          await sendMessage(chatId, msgText)
+          await answerCallbackQuery(query.id)
         }
       }
 
