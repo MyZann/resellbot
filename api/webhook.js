@@ -2,13 +2,14 @@ const TOKEN = '8999455251:AAFkmFjMu3dd02IAESeg0JzyreCAFZ2eT5o'
 const OWNER_ID = 7340265605
 const TELEGRAM_API = 'https://api.telegram.org/bot' + TOKEN
 
+// Peringatan: Data ini hilang saat Vercel me-restart fungsi
 let startTime = Date.now()
 let authorizedUsers = [OWNER_ID]
 let blacklistedUsers = []
 let keyLogs = []
 let activeKeys = {}
 let userBalances = {}
-let adminState = ''
+let adminState = {}
 
 let products = {
   p1: { name: 'Fluorite iOS', img: 'https://placehold.co/600x400/png?text=Fluorite+iOS', pkgs: [['1D', 35000], ['7D', 125000], ['30D', 300000]] },
@@ -149,33 +150,34 @@ async function kirimDashboard(chatId) {
 }
 
 async function handleAdminInput(chatId, text) {
+  const state = adminState[chatId]
   try {
-    if (adminState === 'ADD_USER') {
+    if (state === 'ADD_USER') {
       const id = parseInt(text)
       if (!authorizedUsers.includes(id)) authorizedUsers.push(id)
       await sendMessage(chatId, '✅ User ' + id + ' berhasil ditambahkan')
-    } else if (adminState === 'REMOVE_USER') {
+    } else if (state === 'REMOVE_USER') {
       const id = parseInt(text)
       authorizedUsers = authorizedUsers.filter(u => u !== id)
       await sendMessage(chatId, '✅ User ' + id + ' berhasil dihapus')
-    } else if (adminState === 'BAN_USER') {
+    } else if (state === 'BAN_USER') {
       const id = parseInt(text)
       if (!blacklistedUsers.includes(id)) blacklistedUsers.push(id)
       authorizedUsers = authorizedUsers.filter(u => u !== id)
       await sendMessage(chatId, '✅ User ' + id + ' dibanned')
-    } else if (adminState === 'ADD_BAL') {
+    } else if (state === 'ADD_BAL') {
       const parts = text.split(' ')
       const id = parseInt(parts[0])
       const amount = parseInt(parts[1])
       userBalances[id] = (userBalances[id] || 0) + amount
       await sendMessage(chatId, '✅ Saldo user ' + id + ' ditambah ' + formatRp(amount))
-    } else if (adminState === 'REMOVE_BAL') {
+    } else if (state === 'REMOVE_BAL') {
       const parts = text.split(' ')
       const id = parseInt(parts[0])
       const amount = parseInt(parts[1])
       userBalances[id] = Math.max(0, (userBalances[id] || 0) - amount)
       await sendMessage(chatId, '✅ Saldo user ' + id + ' dikurangi ' + formatRp(amount))
-    } else if (adminState === 'ADD_PROD') {
+    } else if (state === 'ADD_PROD') {
       const parts = text.split('|')
       const pId = parts[0]
       const pName = parts[1]
@@ -185,17 +187,17 @@ async function handleAdminInput(chatId, text) {
       })
       products[pId] = { name: pName, img: 'https://placehold.co/600x400/png?text=' + pName.replace(/ /g, '+'), pkgs: pPkgs }
       await sendMessage(chatId, '✅ Produk ' + pName + ' berhasil ditambahkan')
-    } else if (adminState === 'DEL_PROD') {
+    } else if (state === 'DEL_PROD') {
       delete products[text]
       await sendMessage(chatId, '✅ Produk ' + text + ' dihapus')
-    } else if (adminState === 'REVOKE_KEY' || adminState === 'RESET_KEY') {
+    } else if (state === 'REVOKE_KEY' || state === 'RESET_KEY') {
       delete activeKeys[text]
       await sendMessage(chatId, '✅ Tindakan berhasil untuk key ' + text)
     }
   } catch (e) {
     await sendMessage(chatId, '❌ Format salah Silakan ulangi')
   }
-  adminState = ''
+  adminState[chatId] = ''
 }
 
 module.exports = async (request, response) => {
@@ -211,12 +213,13 @@ module.exports = async (request, response) => {
       const chatId = msg.chat.id
       const text = msg.text || ''
 
-      if (chatId === OWNER_ID && adminState !== '' && !text.startsWith('/')) {
+      if (chatId === OWNER_ID && adminState[chatId] && !text.startsWith('/')) {
         await handleAdminInput(chatId, text)
         return response.status(200).send('OK')
       }
 
       if (text === '/start') {
+        adminState[chatId] = ''
         if (blacklistedUsers.includes(chatId)) {
           await sendMessage(chatId, '⛔ Akun Anda telah dibanned oleh Admin')
           return response.status(200).send('OK')
@@ -457,13 +460,13 @@ module.exports = async (request, response) => {
 
       if (data.startsWith('act_')) {
         if (chatId === OWNER_ID) {
-          adminState = data.replace('act_', '')
-          let msgText = 'Kirimkan data untuk ' + adminState + '\n\n'
-          if (adminState === 'ADD_USER' || adminState === 'REMOVE_USER' || adminState === 'BAN_USER') msgText += 'Format IDUser\nContoh 12345678'
-          else if (adminState === 'ADD_BAL' || adminState === 'REMOVE_BAL') msgText += 'Format IDUser Jumlah\nContoh 12345678 50000'
-          else if (adminState === 'ADD_PROD') msgText += 'Format ID|Nama|Durasi,Harga;Durasi,Harga\nContoh p11|VIP Baru|1D,10000;7D,50000'
-          else if (adminState === 'DEL_PROD') msgText += 'Format IDProduk\nContoh p1'
-          else if (adminState === 'REVOKE_KEY' || adminState === 'RESET_KEY') msgText += 'Format Key\nContoh ABCD-EFGH-IJKL-MNOP'
+          adminState[chatId] = data.replace('act_', '')
+          let msgText = 'Kirimkan data untuk ' + adminState[chatId] + '\n\n'
+          if (adminState[chatId] === 'ADD_USER' || adminState[chatId] === 'REMOVE_USER' || adminState[chatId] === 'BAN_USER') msgText += 'Format IDUser\nContoh 12345678'
+          else if (adminState[chatId] === 'ADD_BAL' || adminState[chatId] === 'REMOVE_BAL') msgText += 'Format IDUser Jumlah\nContoh 12345678 50000'
+          else if (adminState[chatId] === 'ADD_PROD') msgText += 'Format ID|Nama|Durasi,Harga;Durasi,Harga\nContoh p11|VIP Baru|1D,10000;7D,50000'
+          else if (adminState[chatId] === 'DEL_PROD') msgText += 'Format IDProduk\nContoh p1'
+          else if (adminState[chatId] === 'REVOKE_KEY' || adminState[chatId] === 'RESET_KEY') msgText += 'Format Key\nContoh ABCD-EFGH-IJKL-MNOP'
 
           await sendMessage(chatId, msgText)
           await answerCallbackQuery(query.id)
