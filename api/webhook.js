@@ -2,7 +2,6 @@ const TOKEN = '8999455251:AAFkmFjMu3dd02IAESeg0JzyreCAFZ2eT5o'
 const OWNER_ID = 7340265605
 const TELEGRAM_API = 'https://api.telegram.org/bot' + TOKEN
 
-// Peringatan: Data ini hilang saat Vercel me-restart fungsi
 let startTime = Date.now()
 let authorizedUsers = [OWNER_ID]
 let blacklistedUsers = []
@@ -132,7 +131,8 @@ async function kirimDashboard(chatId) {
     '-----------------------------\n' +
     '🔥 <b>PRODUK TERSEDIA KAMI</b> 🔥\n' +
     prodText + '\n' +
-    '🚀 <i>Official Key Bot</i>'
+    '🚀 <i>Official Joe Xiter Reseller Bot</i>\n' +
+    '📱 <i>WA: 085860881269</i>'
 
   const options = {
     parse_mode: 'HTML',
@@ -140,9 +140,8 @@ async function kirimDashboard(chatId) {
       inline_keyboard: [
         [{ text: '👑 OWNER MENU', callback_data: 'owner_menu' }],
         [{ text: '🔑 BUAT KEY', callback_data: 'buat_key' }, { text: '💼 RESELLER PANEL', callback_data: 'dummy_panel' }],
-        [{ text: '🌟 SPECIAL PANEL', callback_data: 'dummy_special' }, { text: '📱 APPS PREMIUM', callback_data: 'dummy_apps' }],
-        [{ text: '💻 SCRIPT TEMPLATE', callback_data: 'dummy_script' }, { text: '💰 DEPOSIT SALDO', callback_data: 'dummy_depo' }],
-        [{ text: '📦 PANEL SAYA', callback_data: 'dummy_saya' }, { text: 'ℹ️ BANTUAN', callback_data: 'dummy_bantuan' }]
+        [{ text: '🌟 SPECIAL PANEL', callback_data: 'dummy_special' }, { text: '💰 DEPOSIT SALDO', callback_data: 'dummy_depo' }],
+        [{ text: 'ℹ️ BANTUAN', callback_data: 'bantuan' }]
       ]
     }
   }
@@ -193,6 +192,16 @@ async function handleAdminInput(chatId, text) {
     } else if (state === 'REVOKE_KEY' || state === 'RESET_KEY') {
       delete activeKeys[text]
       await sendMessage(chatId, '✅ Tindakan berhasil untuk key ' + text)
+    } else if (state === 'ANNOUNCEMENT') {
+        const msgTeks = '📢 <b>PENGUMUMAN DARI OWNER</b>\n\n' + text
+        let count = 0
+        for (const user of authorizedUsers) {
+            if(user !== OWNER_ID){
+               await sendMessage(user, msgTeks, { parse_mode: 'HTML' })
+               count++
+            }
+        }
+        await sendMessage(chatId, '✅ Pengumuman berhasil dikirim ke ' + count + ' user')
     }
   } catch (e) {
     await sendMessage(chatId, '❌ Format salah Silakan ulangi')
@@ -371,6 +380,21 @@ module.exports = async (request, response) => {
         await kirimDashboard(chatId)
       }
 
+      if (data === 'bantuan') {
+          const teksBantuan = 'ℹ️ <b>BANTUAN & INFORMASI</b>\n\n' +
+          'Hubungi Admin untuk:\n' +
+          '- Beli Saldo\n' +
+          '- Laporan Masalah\n' +
+          '- Pertanyaan Produk\n\n' +
+          '📱 WA: 085860881269\n' +
+          'Atau hubungi Owner Bot'
+          
+          await editMessageText(chatId, messageId, teksBantuan, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: '🔙 Kembali', callback_data: 'kembali_menu' }]] }
+          })
+      }
+
       if (data === 'owner_menu') {
         if (chatId === OWNER_ID) {
           const opts = {
@@ -379,7 +403,8 @@ module.exports = async (request, response) => {
               inline_keyboard: [
                 [{ text: '👥 Kelola User', callback_data: 'own_users' }, { text: '💰 Kelola Saldo', callback_data: 'own_bal' }],
                 [{ text: '📦 Kelola Produk', callback_data: 'own_prod' }, { text: '🔑 Kelola Key', callback_data: 'own_keys' }],
-                [{ text: '📋 Lihat Log', callback_data: 'own_logs' }, { text: '🔙 Kembali Dasbor', callback_data: 'kembali_menu' }]
+                [{ text: '📋 Lihat Log', callback_data: 'own_logs' }, { text: '📢 Broadcast', callback_data: 'act_ANNOUNCEMENT' }],
+                [{ text: '🔙 Kembali Dasbor', callback_data: 'kembali_menu' }]
               ]
             }
           }
@@ -467,6 +492,7 @@ module.exports = async (request, response) => {
           else if (adminState[chatId] === 'ADD_PROD') msgText += 'Format ID|Nama|Durasi,Harga;Durasi,Harga\nContoh p11|VIP Baru|1D,10000;7D,50000'
           else if (adminState[chatId] === 'DEL_PROD') msgText += 'Format IDProduk\nContoh p1'
           else if (adminState[chatId] === 'REVOKE_KEY' || adminState[chatId] === 'RESET_KEY') msgText += 'Format Key\nContoh ABCD-EFGH-IJKL-MNOP'
+          else if (adminState[chatId] === 'ANNOUNCEMENT') msgText += 'Tulis pesan pengumuman yang ingin dikirim ke semua user'
 
           await sendMessage(chatId, msgText)
           await answerCallbackQuery(query.id)
