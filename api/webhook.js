@@ -1,6 +1,7 @@
 const TOKEN = '8999455251:AAFkmFjMu3dd02IAESeg0JzyreCAFZ2eT5o'
 const OWNER_ID = 7340265605
 const TELEGRAM_API = 'https://api.telegram.org/bot' + TOKEN
+const QRIS_URL = 'https://placehold.co/600x600/png?text=QRIS+Payment'
 
 let startTime = Date.now()
 let authorizedUsers = [OWNER_ID]
@@ -9,6 +10,8 @@ let keyLogs = []
 let activeKeys = {}
 let userBalances = {}
 let adminState = {}
+let userState = {}
+let pendingDeposits = {}
 
 let products = {
   p1: { name: 'Fluorite iOS', img: 'https://placehold.co/600x400/png?text=Fluorite+iOS', pkgs: [['1D', 35000], ['7D', 125000], ['30D', 300000]] },
@@ -65,6 +68,16 @@ async function editMessageText(chatId, messageId, text, options = {}) {
     ...options
   }
   return await sendTelegramRequest('editMessageText', payload)
+}
+
+async function editMessageCaption(chatId, messageId, caption, options = {}) {
+  const payload = {
+    chat_id: chatId,
+    message_id: messageId,
+    caption: caption,
+    ...options
+  }
+  return await sendTelegramRequest('editMessageCaption', payload)
 }
 
 async function sendPhoto(chatId, photo, options = {}) {
@@ -140,7 +153,7 @@ async function kirimDashboard(chatId) {
       inline_keyboard: [
         [{ text: '👑 OWNER MENU', callback_data: 'owner_menu' }],
         [{ text: '🔑 BUAT KEY', callback_data: 'buat_key' }, { text: '💼 RESELLER PANEL', callback_data: 'dummy_panel' }],
-        [{ text: '🌟 SPECIAL PANEL', callback_data: 'dummy_special' }, { text: '💰 DEPOSIT SALDO', callback_data: 'dummy_depo' }],
+        [{ text: '🌟 SPECIAL PANEL', callback_data: 'dummy_special' }, { text: '💰 DEPOSIT SALDO', callback_data: 'depo_start' }],
         [{ text: 'ℹ️ BANTUAN', callback_data: 'bantuan' }]
       ]
     }
@@ -220,15 +233,62 @@ module.exports = async (request, response) => {
     if (body && body.message) {
       const msg = body.message
       const chatId = msg.chat.id
-      const text = msg.text || ''
+      const text = msg.text || msg.caption || ''
+      const username = msg.from.username ? '@' + msg.from.username : msg.from.first_name
 
-      if (chatId === OWNER_ID && adminState[chatId] && !text.startsWith('/')) {
-        await handleAdminInput(chatId, text)
-        return response.status(200).send('OK')
+      if (msg.photo) {
+        if (userState[chatId] && userState[chatId].step === 'AWAITING_RECEIPT') {
+          const state = userState[chatId]
+          const photoId = msg.photo[msg.photo.length - 1].file_id
+          const depId = Date.now().toString()
+          
+          pendingDeposits[depId] = { userId: chatId, username: username, amount: state.amount, uniqueAmount: state.uniqueAmount }
+
+          const ownerCaption = `📢 <b>PENGAJUAN DEPOSIT BARU</b>\n\nUser: ${username} (ID: ${chatId})\nNominal Diminta: ${formatRp(state.amount)}\nNominal Transfer: ${formatRp(state.uniqueAmount)}\n\nPilih tindakan:`
+          
+          const ownerOpts = {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '✅ ACC', callback_data: 'accdep_' + depId }, { text: '❌ TOLAK', callback_data: 'rejdep_' + depId }]
+              ]
+            }
+          }
+          
+          await sendPhoto(OWNER_ID, photoId, { caption: ownerCaption, ...ownerOpts })
+          await sendMessage(chatId, '✅ Bukti pembayaran berhasil dikirim. Mohon tunggu admin memproses saldo Anda.')
+          
+          userState[chatId] = null
+          return response.status(200).send('OK')
+        }
+      }
+
+      if (text && !text.startsWith('/')) {
+        if (chatId === OWNER_ID && adminState[chatId]) {
+          await handleAdminInput(chatId, text)
+          return response.status(200).send('OK')
+        }
+
+        if (userState[chatId] && userState[chatId].step === 'AWAITING_DEPO_AMOUNT') {
+          const amount = parseInt(text)
+          if (isNaN(amount) || amount < 10000) {
+            await sendMessage(chatId, '❌ Nominal tidak valid. Masukkan angka saja, minimal 10000.')
+            return response.status(200).send('OK')
+          }
+          
+          const uniqueCode = Math.floor(Math.random() * 900) + 100
+          const uniqueAmount = amount + uniqueCode
+          userState[chatId] = { step: 'AWAITING_RECEIPT', amount, uniqueAmount }
+
+          const caption = `Silakan transfer tepat sebesar <b>${formatRp(uniqueAmount)}</b> ke QRIS di atas.\n\nPastikan Anda mentransfer nominal unik tersebut agar otomatis terdeteksi.\n\nJika sudah, kirimkan foto bukti transfer Anda di sini.`
+          await sendPhoto(chatId, QRIS_URL, { caption: caption, parse_mode: 'HTML' })
+          return response.status(200).send('OK')
+        }
       }
 
       if (text === '/start') {
         adminState[chatId] = ''
+        userState[chatId] = null
         if (blacklistedUsers.includes(chatId)) {
           await sendMessage(chatId, '⛔ Akun Anda telah dibanned oleh Admin')
           return response.status(200).send('OK')
@@ -252,6 +312,43 @@ module.exports = async (request, response) => {
       const messageId = query.message.message_id
       const data = query.data
       const username = query.from.username ? '@' + query.from.username : query.from.first_name
+
+      if (data === 'depo_start') {
+        userState[chatId] = { step: 'AWAITING_DEPO_AMOUNT' }
+        await sendMessage(chatId, 'Ketik nominal saldo yang ingin Anda isi (Minimal Rp 10.000).\n\nKetik angka saja, contoh: 50000')
+        await answerCallbackQuery(query.id)
+      }
+
+      if (data.startsWith('accdep_')) {
+        if (chatId === OWNER_ID) {
+          const depId = data.split('_')[1]
+          const dep = pendingDeposits[depId]
+          if (dep) {
+            userBalances[dep.userId] = (userBalances[dep.userId] || 0) + dep.uniqueAmount
+            await sendMessage(dep.userId, `✅ Deposit Rp ${dep.uniqueAmount.toLocaleString('id-ID')} berhasil ditambahkan ke saldo Anda.`)
+            await editMessageCaption(chatId, messageId, `✅ Deposit dari ${dep.username} sebesar ${formatRp(dep.uniqueAmount)} telah DITERIMA.`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [] } })
+            delete pendingDeposits[depId]
+          } else {
+            await answerCallbackQuery(query.id, { text: 'Data tidak ditemukan', show_alert: true })
+          }
+        }
+        await answerCallbackQuery(query.id)
+      }
+
+      if (data.startsWith('rejdep_')) {
+        if (chatId === OWNER_ID) {
+          const depId = data.split('_')[1]
+          const dep = pendingDeposits[depId]
+          if (dep) {
+            await sendMessage(dep.userId, `❌ Deposit Anda sebesar ${formatRp(dep.uniqueAmount)} ditolak oleh Admin.`)
+            await editMessageCaption(chatId, messageId, `❌ Deposit dari ${dep.username} sebesar ${formatRp(dep.uniqueAmount)} telah DITOLAK.`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [] } })
+            delete pendingDeposits[depId]
+          } else {
+            await answerCallbackQuery(query.id, { text: 'Data tidak ditemukan', show_alert: true })
+          }
+        }
+        await answerCallbackQuery(query.id)
+      }
 
       if (data === 'minta_akses') {
         if (authorizedUsers.includes(chatId)) {
@@ -369,15 +466,6 @@ module.exports = async (request, response) => {
           await kirimDashboard(chatId)
           await answerCallbackQuery(query.id)
         }
-      }
-
-      if (data === 'dummy_depo') {
-        if (chatId !== OWNER_ID) {
-          userBalances[chatId] = (userBalances[chatId] || 0) + 100000
-        }
-        await answerCallbackQuery(query.id, { text: '✅ Saldo Rp 100.000 ditambahkan untuk pengujian', show_alert: true })
-        await deleteMessage(chatId, messageId)
-        await kirimDashboard(chatId)
       }
 
       if (data === 'bantuan') {
@@ -499,7 +587,7 @@ module.exports = async (request, response) => {
         }
       }
 
-      if (data.startsWith('dummy_') && data !== 'dummy_depo') {
+      if (data.startsWith('dummy_')) {
         await answerCallbackQuery(query.id, { text: '🚧 Fitur sedang dalam pengembangan', show_alert: true })
       }
     }
