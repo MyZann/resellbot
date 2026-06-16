@@ -24,12 +24,12 @@ let products = {
 }
 
 function getBalance(chatId) {
-  if (chatId === OWNER_ID) return 9999999;
-  return userBalances[chatId] || 0;
+  if (chatId === OWNER_ID) return 9999999
+  return userBalances[chatId] || 0
 }
 
 function formatRp(angka) {
-  return 'Rp ' + angka.toLocaleString('id-ID');
+  return 'Rp ' + angka.toLocaleString('id-ID')
 }
 
 async function sendTelegramRequest(method, payload) {
@@ -43,7 +43,7 @@ async function sendTelegramRequest(method, payload) {
     })
     return await response.json()
   } catch (error) {
-    console.error('Gagal mengirim pesan:', error)
+    console.error('Gagal mengirim pesan', error)
     return null
   }
 }
@@ -199,7 +199,6 @@ async function handleAdminInput(chatId, text) {
 }
 
 module.exports = async (request, response) => {
-  // Rute ini dipakai cron-job.org untuk menjaga server tetap hidup
   if (request.method === 'GET') {
     return response.status(200).send('Server bot aktif dan siap menerima pesan')
   }
@@ -295,7 +294,7 @@ module.exports = async (request, response) => {
           const keyboardList = Object.keys(products).map(key => ([{ text: products[key].name, callback_data: 'sel_' + key }]))
           keyboardList.push([{ text: '🔙 Kembali', callback_data: 'kembali_menu' }])
           
-          await sendMessage(chatId, '📦 <b>PILIH PRODUK</b>\nSilakan pilih produk yang ingin Anda buat key-nya:', {
+          await sendMessage(chatId, '📦 <b>PILIH PRODUK</b>\nSilakan pilih produk yang ingin Anda buat key-nya', {
             parse_mode: 'HTML',
             reply_markup: { inline_keyboard: keyboardList }
           })
@@ -312,7 +311,7 @@ module.exports = async (request, response) => {
           packageButtons.push([{ text: '🔙 Kembali', callback_data: 'buat_key' }])
           
           await sendPhoto(chatId, p.img, {
-            caption: 'Produk: <b>' + p.name + '</b>\n\nSilakan pilih durasi paket di bawah ini:',
+            caption: 'Produk <b>' + p.name + '</b>\n\nSilakan pilih durasi paket di bawah ini',
             parse_mode: 'HTML',
             reply_markup: { inline_keyboard: packageButtons }
           })
@@ -332,7 +331,7 @@ module.exports = async (request, response) => {
         const bal = getBalance(chatId)
 
         if (bal < price) {
-          await answerCallbackQuery(query.id, { text: '⛔ Saldo tidak mencukupi!\nHarga: ' + formatRp(price) + '\nSaldo Anda: ' + formatRp(bal), show_alert: true })
+          await answerCallbackQuery(query.id, { text: '⛔ Saldo tidak mencukupi\nHarga ' + formatRp(price) + '\nSaldo Anda ' + formatRp(bal), show_alert: true })
         } else {
           if (chatId !== OWNER_ID) {
             userBalances[chatId] = bal - price
@@ -381,7 +380,7 @@ module.exports = async (request, response) => {
               ]
             }
           }
-          await editMessageText(chatId, messageId, '👑 <b>PANEL OWNER</b>\nSilakan pilih menu manajemen:', opts)
+          await editMessageText(chatId, messageId, '👑 <b>PANEL OWNER</b>\nSilakan pilih menu manajemen', opts)
         } else {
           await answerCallbackQuery(query.id, { text: '⛔ Menu ini khusus untuk Owner', show_alert: true })
         }
@@ -417,7 +416,7 @@ module.exports = async (request, response) => {
 
       if (data === 'own_prod') {
         if (chatId === OWNER_ID) {
-          let pList = 'Daftar Produk Saat Ini:\n' + Object.keys(products).map(k => k + ' ' + products[k].name).join('\n')
+          let pList = 'Daftar Produk Saat Ini\n' + Object.keys(products).map(k => k + ' ' + products[k].name).join('\n')
           await editMessageText(chatId, messageId, '📦 <b>Manajemen Produk</b>\n' + pList, {
             parse_mode: 'HTML',
             reply_markup: {
@@ -478,7 +477,7 @@ module.exports = async (request, response) => {
 
     response.status(200).send('OK')
   } catch (error) {
-    console.error('Error handling webhook:', error)
+    console.error('Error handling webhook', error)
     response.status(500).send('Error')
   }
 }
