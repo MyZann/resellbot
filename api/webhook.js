@@ -12,6 +12,7 @@ let userBalances = {}
 let adminState = {}
 let userState = {}
 let pendingDeposits = {}
+let depositHistory = {}
 
 let products = {
   p1: { name: 'Fluorite iOS', img: 'https://placehold.co/600x400/png?text=Fluorite+iOS', pkgs: [['1D', 35000], ['7D', 125000], ['30D', 300000]] },
@@ -26,8 +27,13 @@ let products = {
   p10: { name: 'GBox', img: 'https://placehold.co/600x400/png?text=GBox', pkgs: [['1Y', 60000]] }
 }
 
-function getBalance(chatId) {
-  if (chatId === OWNER_ID) return 9999999
+function getBalanceString(chatId) {
+  if (chatId === OWNER_ID) return '∞ Unlimited'
+  return formatRp(userBalances[chatId] || 0)
+}
+
+function getBalanceValue(chatId) {
+  if (chatId === OWNER_ID) return 999999999
   return userBalances[chatId] || 0
 }
 
@@ -89,6 +95,24 @@ async function sendPhoto(chatId, photo, options = {}) {
   return await sendTelegramRequest('sendPhoto', payload)
 }
 
+async function sendVideo(chatId, video, options = {}) {
+    const payload = {
+        chat_id: chatId,
+        video: video,
+        ...options
+    }
+    return await sendTelegramRequest('sendVideo', payload)
+}
+
+async function sendDocument(chatId, document, options = {}) {
+    const payload = {
+        chat_id: chatId,
+        document: document,
+        ...options
+    }
+    return await sendTelegramRequest('sendDocument', payload)
+}
+
 async function deleteMessage(chatId, messageId) {
   const payload = {
     chat_id: chatId,
@@ -139,7 +163,7 @@ async function kirimDashboard(chatId) {
 
   const teksDasbor = '🕒 <b>Waktu Sekarang:</b> ' + getWaktu() + '\n' +
     '⏱ <b>Runtime Bot:</b> ' + getUptime() + '\n' +
-    '💳 <b>Saldo Kamu:</b> ' + formatRp(getBalance(chatId)) + '\n' +
+    '💳 <b>Saldo Kamu:</b> ' + getBalanceString(chatId) + '\n' +
     '👥 <b>Total Pengguna:</b> ' + authorizedUsers.length + '\n' +
     '-----------------------------\n' +
     '🔥 <b>PRODUK TERSEDIA KAMI</b> 🔥\n' +
@@ -152,8 +176,8 @@ async function kirimDashboard(chatId) {
     reply_markup: {
       inline_keyboard: [
         [{ text: '👑 OWNER MENU', callback_data: 'owner_menu' }],
-        [{ text: '🔑 BUAT KEY', callback_data: 'buat_key' }, { text: '💼 RESELLER PANEL', callback_data: 'dummy_panel' }],
-        [{ text: '🌟 SPECIAL PANEL', callback_data: 'dummy_special' }, { text: '💰 DEPOSIT SALDO', callback_data: 'depo_start' }],
+        [{ text: '🔑 BUAT KEY', callback_data: 'buat_key' }, { text: '💼 RESELLER PANEL', callback_data: 'reseller_panel' }],
+        [{ text: '📜 HISTORY DEPOSIT', callback_data: 'history_depo' }, { text: '💰 DEPOSIT SALDO', callback_data: 'depo_start' }],
         [{ text: 'ℹ️ BANTUAN', callback_data: 'bantuan' }]
       ]
     }
@@ -161,8 +185,34 @@ async function kirimDashboard(chatId) {
   await sendMessage(chatId, teksDasbor, options)
 }
 
-async function handleAdminInput(chatId, text) {
+async function broadcastAnnouncement(msg) {
+    const msgType = msg.photo ? 'photo' : msg.video ? 'video' : msg.document ? 'document' : 'text'
+    const caption = msg.caption || msg.text || ''
+    const formattedCaption = '📢 <b>PENGUMUMAN DARI OWNER</b>\n\n' + caption
+    
+    let count = 0
+    for (const user of authorizedUsers) {
+        if(user !== OWNER_ID){
+            if (msgType === 'photo') {
+                const photoId = msg.photo[msg.photo.length - 1].file_id
+                await sendPhoto(user, photoId, { caption: formattedCaption, parse_mode: 'HTML' })
+            } else if (msgType === 'video') {
+                 await sendVideo(user, msg.video.file_id, { caption: formattedCaption, parse_mode: 'HTML' })
+            } else if (msgType === 'document') {
+                 await sendDocument(user, msg.document.file_id, { caption: formattedCaption, parse_mode: 'HTML' })
+            } else {
+                await sendMessage(user, formattedCaption, { parse_mode: 'HTML' })
+            }
+            count++
+        }
+    }
+    return count
+}
+
+async function handleAdminInput(chatId, msg) {
   const state = adminState[chatId]
+  const text = msg.text || ''
+  
   try {
     if (state === 'ADD_USER') {
       const id = parseInt(text)
@@ -206,14 +256,7 @@ async function handleAdminInput(chatId, text) {
       delete activeKeys[text]
       await sendMessage(chatId, '✅ Tindakan berhasil untuk key ' + text)
     } else if (state === 'ANNOUNCEMENT') {
-        const msgTeks = '📢 <b>PENGUMUMAN DARI OWNER</b>\n\n' + text
-        let count = 0
-        for (const user of authorizedUsers) {
-            if(user !== OWNER_ID){
-               await sendMessage(user, msgTeks, { parse_mode: 'HTML' })
-               count++
-            }
-        }
+        const count = await broadcastAnnouncement(msg)
         await sendMessage(chatId, '✅ Pengumuman berhasil dikirim ke ' + count + ' user')
     }
   } catch (e) {
@@ -236,39 +279,37 @@ module.exports = async (request, response) => {
       const text = msg.text || msg.caption || ''
       const username = msg.from.username ? '@' + msg.from.username : msg.from.first_name
 
-      if (msg.photo) {
-        if (userState[chatId] && userState[chatId].step === 'AWAITING_RECEIPT') {
-          const state = userState[chatId]
-          const photoId = msg.photo[msg.photo.length - 1].file_id
-          const depId = Date.now().toString()
-          
-          pendingDeposits[depId] = { userId: chatId, username: username, amount: state.amount, uniqueAmount: state.uniqueAmount }
+      if (chatId === OWNER_ID && adminState[chatId] && (!text || !text.startsWith('/'))) {
+         await handleAdminInput(chatId, msg)
+         return response.status(200).send('OK')
+      }
 
-          const ownerCaption = `📢 <b>PENGAJUAN DEPOSIT BARU</b>\n\nUser: ${username} (ID: ${chatId})\nNominal Diminta: ${formatRp(state.amount)}\nNominal Transfer: ${formatRp(state.uniqueAmount)}\n\nPilih tindakan:`
-          
-          const ownerOpts = {
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '✅ ACC', callback_data: 'accdep_' + depId }, { text: '❌ TOLAK', callback_data: 'rejdep_' + depId }]
-              ]
-            }
+      if (msg.photo && userState[chatId] && userState[chatId].step === 'AWAITING_RECEIPT') {
+        const state = userState[chatId]
+        const photoId = msg.photo[msg.photo.length - 1].file_id
+        const depId = Date.now().toString()
+        
+        pendingDeposits[depId] = { userId: chatId, username: username, amount: state.amount, uniqueAmount: state.uniqueAmount, date: getWaktu() }
+
+        const ownerCaption = `📢 <b>PENGAJUAN DEPOSIT BARU</b>\n\nUser: ${username} (ID: ${chatId})\nNominal Diminta: ${formatRp(state.amount)}\nNominal Transfer: ${formatRp(state.uniqueAmount)}\n\nPilih tindakan:`
+        
+        const ownerOpts = {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '✅ ACC', callback_data: 'accdep_' + depId }, { text: '❌ TOLAK', callback_data: 'rejdep_' + depId }]
+            ]
           }
-          
-          await sendPhoto(OWNER_ID, photoId, { caption: ownerCaption, ...ownerOpts })
-          await sendMessage(chatId, '✅ Bukti pembayaran berhasil dikirim. Mohon tunggu admin memproses saldo Anda.')
-          
-          userState[chatId] = null
-          return response.status(200).send('OK')
         }
+        
+        await sendPhoto(OWNER_ID, photoId, { caption: ownerCaption, ...ownerOpts })
+        await sendMessage(chatId, '✅ Bukti pembayaran berhasil dikirim. Mohon tunggu admin memproses saldo Anda.')
+        
+        userState[chatId] = null
+        return response.status(200).send('OK')
       }
 
       if (text && !text.startsWith('/')) {
-        if (chatId === OWNER_ID && adminState[chatId]) {
-          await handleAdminInput(chatId, text)
-          return response.status(200).send('OK')
-        }
-
         if (userState[chatId] && userState[chatId].step === 'AWAITING_DEPO_AMOUNT') {
           const amount = parseInt(text)
           if (isNaN(amount) || amount < 10000) {
@@ -325,6 +366,10 @@ module.exports = async (request, response) => {
           const dep = pendingDeposits[depId]
           if (dep) {
             userBalances[dep.userId] = (userBalances[dep.userId] || 0) + dep.uniqueAmount
+            
+            if(!depositHistory[dep.userId]) depositHistory[dep.userId] = []
+            depositHistory[dep.userId].push({ amount: dep.uniqueAmount, status: 'SUCCESS', date: dep.date })
+
             await sendMessage(dep.userId, `✅ Deposit Rp ${dep.uniqueAmount.toLocaleString('id-ID')} berhasil ditambahkan ke saldo Anda.`)
             await editMessageCaption(chatId, messageId, `✅ Deposit dari ${dep.username} sebesar ${formatRp(dep.uniqueAmount)} telah DITERIMA.`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [] } })
             delete pendingDeposits[depId]
@@ -340,6 +385,9 @@ module.exports = async (request, response) => {
           const depId = data.split('_')[1]
           const dep = pendingDeposits[depId]
           if (dep) {
+            if(!depositHistory[dep.userId]) depositHistory[dep.userId] = []
+            depositHistory[dep.userId].push({ amount: dep.uniqueAmount, status: 'REJECTED', date: dep.date })
+
             await sendMessage(dep.userId, `❌ Deposit Anda sebesar ${formatRp(dep.uniqueAmount)} ditolak oleh Admin.`)
             await editMessageCaption(chatId, messageId, `❌ Deposit dari ${dep.username} sebesar ${formatRp(dep.uniqueAmount)} telah DITOLAK.`, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [] } })
             delete pendingDeposits[depId]
@@ -437,9 +485,9 @@ module.exports = async (request, response) => {
         
         const price = pkg[1]
         const duration = pkg[0]
-        const bal = getBalance(chatId)
+        const bal = getBalanceValue(chatId)
 
-        if (bal < price) {
+        if (bal < price && chatId !== OWNER_ID) {
           await answerCallbackQuery(query.id, { text: '⛔ Saldo tidak mencukupi\nHarga ' + formatRp(price) + '\nSaldo Anda ' + formatRp(bal), show_alert: true })
         } else {
           if (chatId !== OWNER_ID) {
@@ -450,7 +498,7 @@ module.exports = async (request, response) => {
           const formatKey = rawKey.slice(0, 4) + '-' + rawKey.slice(4, 8) + '-' + rawKey.slice(8, 12) + '-' + rawKey.slice(12, 16)
           
           keyLogs.push('👤 ' + username + ' 🔑 ' + formatKey + ' (' + p.name + ' ' + duration + ')')
-          activeKeys[formatKey] = { user: username, prod: p.name }
+          activeKeys[formatKey] = { user: username, userId: chatId, prod: p.name, duration: duration, created: getWaktu() }
 
           const teksHasil = '🛒 <b>KEY BARU DIBUAT</b>\n\n' +
             '👤 <b>User:</b> ' + username + '\n' +
@@ -466,6 +514,45 @@ module.exports = async (request, response) => {
           await kirimDashboard(chatId)
           await answerCallbackQuery(query.id)
         }
+      }
+
+      if (data === 'reseller_panel') {
+          let rText = '💼 <b>RESELLER PANEL</b>\nDaftar Key Aktif Milik Anda:\n\n'
+          let hasKeys = false
+          
+          for (const key in activeKeys) {
+             if (activeKeys[key].userId === chatId) {
+                 rText += `🔑 ${key}\n📦 ${activeKeys[key].prod} (${activeKeys[key].duration})\n⏰ ${activeKeys[key].created}\n\n`
+                 hasKeys = true
+             }
+          }
+
+          if(!hasKeys) rText += 'Belum ada key yang dibuat.'
+
+          await editMessageText(chatId, messageId, rText, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: '🔙 Kembali', callback_data: 'kembali_menu' }]] }
+          })
+          await answerCallbackQuery(query.id)
+      }
+
+      if (data === 'history_depo') {
+          let dText = '📜 <b>HISTORY DEPOSIT</b>\n\n'
+          const hist = depositHistory[chatId] || []
+          
+          if(hist.length === 0) {
+              dText += 'Belum ada riwayat deposit.'
+          } else {
+              for(const h of hist) {
+                  dText += `💰 ${formatRp(h.amount)}\n📅 ${h.date}\nStatus: ${h.status}\n\n`
+              }
+          }
+
+          await editMessageText(chatId, messageId, dText, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: '🔙 Kembali', callback_data: 'kembali_menu' }]] }
+          })
+          await answerCallbackQuery(query.id)
       }
 
       if (data === 'bantuan') {
@@ -580,15 +667,11 @@ module.exports = async (request, response) => {
           else if (adminState[chatId] === 'ADD_PROD') msgText += 'Format ID|Nama|Durasi,Harga;Durasi,Harga\nContoh p11|VIP Baru|1D,10000;7D,50000'
           else if (adminState[chatId] === 'DEL_PROD') msgText += 'Format IDProduk\nContoh p1'
           else if (adminState[chatId] === 'REVOKE_KEY' || adminState[chatId] === 'RESET_KEY') msgText += 'Format Key\nContoh ABCD-EFGH-IJKL-MNOP'
-          else if (adminState[chatId] === 'ANNOUNCEMENT') msgText += 'Tulis pesan pengumuman yang ingin dikirim ke semua user'
+          else if (adminState[chatId] === 'ANNOUNCEMENT') msgText += 'Tulis pesan, atau kirim foto/video dengan caption untuk dikirim ke semua user'
 
           await sendMessage(chatId, msgText)
           await answerCallbackQuery(query.id)
         }
-      }
-
-      if (data.startsWith('dummy_')) {
-        await answerCallbackQuery(query.id, { text: '🚧 Fitur sedang dalam pengembangan', show_alert: true })
       }
     }
 
